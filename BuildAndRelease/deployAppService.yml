@@ -1,0 +1,29 @@
+parameters: 
+  - name: appFilePath
+    type: string
+  - name: appSettingTargetFiles
+    type: string
+  - name: azureSubscription
+    type: string
+  - name: WebAppName
+    type: string
+
+
+steps: 
+      - bash: |
+            sudo apt-get update 
+            sudo apt-get install unzip
+      - task: FileTransform@1
+        displayName: 'Transform web appsettings.json'
+        inputs:
+            folderPath: ${{ parameters.appFilePath }}
+            fileType: 'json'
+            targetFiles: ${{ parameters.appSettingTargetFiles }}
+      - task: AzureRmWebAppDeployment@4
+        condition: succeeded()
+        displayName: 'Deploy to Azure App Service'
+        inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            WebAppName: ${{ parameters.WebAppName }}
+            packageForLinux: ${{ parameters.appFilePath }}
+

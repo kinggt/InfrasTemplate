@@ -1,0 +1,62 @@
+{
+    "resourceGroup": {
+        "name": "$parameter('rgName')",
+        "description": "",
+        "tags": []
+    },
+    "resources": [
+        {
+            "name": "$parameter('appName')",
+            "sku": "api",
+            "resourceType": "veracity.application",
+            "sections": {
+                "properties": {
+                    "isApi": true,
+                    "clientType": "Confidential",
+                    "applicationUrl": "$parameter('appUrl')",
+                    "redirectUrls": [
+                        "$parameter('redirectUrl1')"
+                    ],
+                    "publishedScopes": [
+                        {
+                            "description": "Access this app on behalf of the signed-in user.",
+                            "scopeName": "user_impersonation"
+                          }
+                    ],
+                    "services": [],
+                    "secretManagementOptions": "rollover"
+                },
+                "advanced": {
+                    "apiProductSubscriptions": [
+                        {
+                            "productId": "veracity-platfrom-api",
+                            "productName": "Veracity Platform API"
+                        }
+                    ],
+                    "clients": [
+                    ],
+                    "apiAcceses": [
+                        {
+                            "apiClientId": "83054ebf-1d7b-43f5-82ad-b2bde84d7b75",
+                            "scopes": [
+                                "user_impersonation"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "name": "appId",
+            "value": "$resources[?name==parameter('appName')].id",
+            "type": "string"
+        },
+        {
+            "name": "appSecret",
+            "value": "$resources[?name==parameter('appName')].sections.properties.secrets[0].secretText",
+            "type": "string"
+        }
+    ]
+}

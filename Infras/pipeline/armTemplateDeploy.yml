@@ -1,0 +1,36 @@
+parameters: 
+  - name: name
+    type: string
+  - name: displayName
+    type: string
+  - name: subscriptionId
+    type: string
+  - name: connectedServiceName
+    type: string
+  - name: location
+    type: string
+  - name: deploymentMode
+    type: string
+  - name: resourceGroupName
+    type: string
+  - name: csmFile
+    type: string
+  - name: overrideParameters
+    type: string
+
+steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        name: ${{ parameters.name }}
+        displayName: ${{ parameters.displayName }}
+        inputs:
+          deploymentScope: 'Resource Group'
+          subscriptionId: ${{ parameters.subscriptionId }}
+          action: 'Create Or Update Resource Group'
+          connectedServiceName: ${{ parameters.connectedServiceName }} # Use the actual name of your Azure service connection
+          location: ${{ parameters.location }} # Use the actual location you're deploying to
+          deploymentMode: ${{ parameters.deploymentMode }}
+          resourceGroupName: ${{ parameters.resourceGroupName }} # Use the actual name of the resource group you're validating against
+          csmFile: ${{ parameters.csmFile }}
+          overrideParameters: >
+            ${{ parameters.overrideParameters }}
+

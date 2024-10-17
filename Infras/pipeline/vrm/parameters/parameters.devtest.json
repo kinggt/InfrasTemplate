@@ -1,0 +1,22 @@
+[
+  {
+    "name": "rgName",
+    "value": "Dev Test",
+    "type": "string"
+  },
+  {
+    "name": "appName",
+    "value": "commonTemplateApi",
+    "type": "string"
+  },
+  {
+    "name": "appUrl",
+    "value": "https://template-app-dt-we.azurewebsites.net",
+    "type": "string"
+  },
+  {
+    "name": "redirectUrl1",
+    "value": "https://template-app-dt-we.azurewebsites.net/swagger/oauth2-redirect.html",
+    "type": "string"
+  }
+]

@@ -1,0 +1,62 @@
+parameters:
+- name: variablesTemplate
+  type: string
+- name: variablesCommonTemplate
+  type: string  
+
+
+jobs:
+    - job: GetResourceName
+      displayName: 'Get Resource Name'
+      variables:
+             - template: ${{ parameters.variablesTemplate }}
+             - template: ${{ parameters.variablesCommonTemplate }}
+      pool:  ${{ variables.buildAndReleaseAgentPool }}
+      steps:
+         - checkout: self
+         - task: AzureCLI@2
+           name: GetNameModule
+           inputs:
+                azureSubscription: ${{ variables.azureServiceConnectionName }}
+                scriptType: 'ps'
+                scriptLocation: 'inlineScript'
+                inlineScript: |
+                   $keyVaultName = az deployment group show --name namingconvention --resource-group ${{ variables.azureResourceGroupName }} --query 'properties.outputs.keyVaultName.value'
+                   $appServiceName = az deployment group show --name namingconvention --resource-group ${{ variables.azureResourceGroupName }} --query 'properties.outputs.appServiceName.value'
+                   $deployAppServiceName=$appServiceName.Trim('"')
+                   $keyVaultUrl = "https://{0}.vault.azure.net/" -f $keyVaultName.Trim('"')
+                   Write-Host $keyVaultUrl
+                   Write-Host $appServiceName
+                   Write-Host $deployAppServiceName
+                   Write-Host "##vso[task.setvariable variable=keyVaultUrl;isOutput=true]$keyVaultUrl"
+                   Write-Host "##vso[task.setvariable variable=appServiceName;isOutput=true]$appServiceName"
+                   Write-Host "##vso[task.setvariable variable=deployAppServiceName;isOutput=true]$deployAppServiceName"
+
+
+
+    - deployment: UpdateAppSettingsAndDeployArtifactsToAppServices
+      displayName: 'Update AppSettings And Deploy artifacts to app services'
+      dependsOn: GetResourceName
+      variables:
+                - template: ${{ parameters.variablesTemplate }}
+                - template: ${{ parameters.variablesCommonTemplate }}
+                - name: KeyVaultUrl
+                  value: $[ dependencies.GetResourceName.outputs['GetNameModule.keyVaultUrl'] ]
+                - name: deployAppServiceName
+                  value: $[ dependencies.GetResourceName.outputs['GetNameModule.deployAppServiceName'] ]
+      pool:  
+        name: ${{ variables.deployVmScaleSet }}
+      environment: ${{ variables.deployEnvironment }}
+      strategy:
+               runOnce:
+                    deploy:
+                      steps: 
+                         - template: deployAppService.yml
+                           parameters:
+                                appFilePath: '$(Pipeline.Workspace)/**/*.zip'
+                                appSettingTargetFiles: '**/appsettings.${{ variables.appEnvironment }}.json'
+                                azureSubscription: ${{ variables.azureServiceConnectionName }}
+                                WebAppName: $(deployAppServiceName)
+                         
+                       
+  

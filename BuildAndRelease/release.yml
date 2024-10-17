@@ -1,0 +1,71 @@
+trigger: none
+  
+name: Common IAC Release
+
+resources:
+  pipelines:
+  - pipeline: Common IAC Build trigger # Name of the pipeline resource
+    source: Common IAC Build # Name of the pipeline referenced by the pipeline resource
+   #project: Trigger-Pipeline-From-Another-Pipeline Required only if the source pipeline is in another project
+    trigger:
+        branches:
+            include:
+              - develop
+              - main
+              - refs/heads/release/*
+              #- refs/heads/feature/*
+
+parameters:
+  - name: buildId
+    type: string
+    default: 'default'
+
+
+stages:
+- stage: Download_Artifact
+  jobs:
+   - template: downloadArtifact.yml
+     parameters:
+        variablesCommonTemplate: /BuildAndRelease/variables/variables.common.yml
+        buildId: ${{ parameters.buildId }}
+
+- stage: Deploy_Devtest
+  dependsOn: Download_Artifact
+  #condition: ${{ and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/release'))) }} 
+  #condition: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/feature') }}
+  condition: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}
+  jobs:
+   - template: deploy.yml
+     parameters:
+        variablesTemplate: /BuildAndRelease/variables/variables.devtest.yml
+        variablesCommonTemplate: /BuildAndRelease/variables/variables.common.yml
+
+# - stage: Deploy_Test
+#   dependsOn: Download_Artifact
+#   condition: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/release/') }}
+#   jobs:
+#    - template: deploy.yml
+#      parameters:
+#         variablesTemplate: release.variables.test.yml
+#         variablesCommonTemplate: release.variables.common.yml
+
+# - stage: Deploy_Stag
+#   dependsOn: Download_Artifact
+#   condition: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/main') }}
+#   jobs:
+#    - template: deploy.yml
+#      parameters:
+#         variablesTemplate: release.variables.stag.yml
+#         variablesCommonTemplate: release.variables.common.yml
+
+
+# - stage: Deploy_Prod
+#   dependsOn: Deploy_Stag
+#   condition: and(succeeded('Deploy_Stag'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+#   jobs:
+#    - template: deploy.yml
+#      parameters:
+#         variablesTemplate: release.variables.prod.yml
+#         variablesCommonTemplate: release.variables.common.yml
+
+

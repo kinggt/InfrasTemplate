@@ -1,0 +1,37 @@
+name: Common IAC Build
+    
+stages:
+- stage: Build
+  jobs: 
+    - job:
+      variables:
+        - template: /BuildAndRelease/variables/variables.common.yml
+      pool:
+        name: ${{ variables.buildAndReleaseAgentPool }}
+      steps:
+        - task: UseDotNet@2
+          displayName: 'Use .NET Core sdk 8.x'
+          inputs:
+            version: 8.x
+
+        - task: DotNetCoreCLI@2
+          displayName: 'dotnet restore'
+          inputs:
+            command: restore
+            projects: '**/*.csproj'
+
+
+        - task: DotNetCoreCLI@2
+          displayName: 'dotnet publish'
+          inputs:
+            command: publish
+            arguments: '--configuration $(BuildConfiguration) --output $(build.artifactstagingdirectory) --no-restore'
+
+
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: drop'
+          inputs:
+            PathtoPublish: '$(build.artifactstagingdirectory)'
+            ArtifactName: drop
+            publishLocation: 'Container'
+

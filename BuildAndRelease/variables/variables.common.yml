@@ -1,0 +1,8 @@
+# DevTest environment variables
+
+variables:
+  buildAndReleaseAgentPool: 'gssit-agent-windows'   # the agent to used by build and release pipelines
+  devopsProject: 'Veracity'   # the devops project name
+  buildPipeline: 'Common IAC Build'   # the build pipeline name
+  nugetConfigPath: 'TemplateWebApi/nuget.config'    # the nuget path if have when using buildWithNuget.yml
+  

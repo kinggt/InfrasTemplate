@@ -1,0 +1,128 @@
+parameters:
+  - name: variablesTemplate
+    type: string
+  - name: commonVariablesTemplate
+    type: string
+  - name: regenerateSecrets
+    type: boolean
+
+jobs:
+  - job: ValidateBicepCode
+    displayName: Validate Bicep code
+    variables:
+      - template: ${{ parameters.variablesTemplate }}
+      - template: ${{ parameters.commonVariablesTemplate }}
+    pool:  ${{ variables.deployInfrasAgentPool }}
+    steps:
+      - template: armTemplateDeploy.yml
+        parameters: 
+          name: 'RunPreflightValidation'
+          displayName: 'Run preflight validation'
+          subscriptionId: ${{ variables.azureSubscriptionId }}
+          connectedServiceName: ${{ variables.azureServiceConnectionName }}
+          location: ${{ variables.deploymentDefaultLocation }}
+          deploymentMode: 'Validation'
+          resourceGroupName: ${{ variables.azureResourceGroupName }}
+          csmFile: ${{ variables.templateFile }}
+          overrideParameters: '-environmentType ${{ variables.environmentType }} -azureServiceConnectionServicePrincipalId ${{ variables.azureServiceConnectionServicePrincipalId }} -serviceName ${{ variables.serviceName }} -locationShortSuffix ${{ variables.locationShortSuffix }}'
+
+  - job: Preview
+    dependsOn: ValidateBicepCode
+    variables:
+        - template: ${{ parameters.variablesTemplate }}
+        - template: ${{ parameters.commonVariablesTemplate }}
+    pool:  ${{ variables.deployInfrasAgentPool }}
+    steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: ${{ variables.azureServiceConnectionName }}
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                az deployment group what-if \
+                  --resource-group ${{ variables.azureResourceGroupName }} \
+                  --template-file ${{ variables.templateFile }} \
+                  --parameters environmentType=${{ variables.environmentType }} \
+                    serviceName=${{ variables.serviceName }} \
+                    locationShortSuffix=${{ variables.locationShortSuffix }} \
+                    azureServiceConnectionServicePrincipalId=${{ variables.azureServiceConnectionServicePrincipalId }}
+
+  - deployment: Deploy
+    dependsOn: Preview
+    variables:
+          - template: ${{ parameters.variablesTemplate }}
+          - template: ${{ parameters.commonVariablesTemplate }}
+    environment: ${{ variables.deployInfraEnvironment }}
+    pool:  ${{ variables.deployInfrasAgentPool }}
+    strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - template: armTemplateDeploy.yml
+                  parameters: 
+                    name: 'Deploy'
+                    displayName: 'Deploy to Azure'
+                    subscriptionId: ${{ variables.azureSubscriptionId }}
+                    connectedServiceName: ${{ variables.azureServiceConnectionName }}
+                    location: ${{ variables.deploymentDefaultLocation }}
+                    deploymentMode: 'Incremental'
+                    resourceGroupName: ${{ variables.azureResourceGroupName }}
+                    csmFile: ${{ variables.templateFile }}
+                    overrideParameters: '-environmentType ${{ variables.environmentType }} -azureServiceConnectionServicePrincipalId ${{ variables.azureServiceConnectionServicePrincipalId }} -serviceName ${{ variables.serviceName }} -locationShortSuffix ${{ variables.locationShortSuffix }}'
+
+  # make sure deploy azure resource successful then enable vrm part , or seperate to another pipeline
+
+  # - job: GetResourceName
+  #   displayName: 'Get Resource Name'
+  #   condition: eq(${{ parameters.regenerateSecrets }}, true)
+  #   dependsOn:
+  #           - Deploy
+  #   variables:
+  #            - template: ${{ parameters.variablesTemplate }}
+  #            - template: ${{ parameters.commonVariablesTemplate }}
+  #   pool: ${{ variables.deployInfrasAgentPool }}
+  #   steps:
+  #        - task: AzureCLI@2
+  #          name: GetNameModule
+  #          inputs:
+  #               azureSubscription: ${{ variables.azureServiceConnectionName }}
+  #               scriptType: 'ps'
+  #               scriptLocation: 'inlineScript'
+  #               inlineScript: |
+  #                  $keyVaultName = az deployment group show --name namingconvention --resource-group ${{ variables.azureResourceGroupName }} --query 'properties.outputs.keyVaultName.value'         
+  #                  $appServiceName = az deployment group show --name namingconvention --resource-group ${{ variables.azureResourceGroupName }} --query 'properties.outputs.appServiceName.value'
+  #                  Write-Host $keyVaultName
+  #                  Write-Host $appServiceName
+  #                  Write-Host "##vso[task.setvariable variable=keyVaultName;isOutput=true]$keyVaultName"
+  #                  Write-Host "##vso[task.setvariable variable=appServiceName;isOutput=true]$appServiceName"
+
+  # - job: RegenerateVRMSecrets
+  #   displayName: "Regenerate VRM Secrets"
+  #   condition: and(succeeded(),eq(${{ parameters.regenerateSecrets }}, true))
+  #   dependsOn:
+  #           - GetResourceName
+  #   variables:
+  #       - template: ${{ parameters.variablesTemplate }}
+  #       - template: ${{ parameters.commonVariablesTemplate }}
+  #       - group: ${{ variables.commonGroupLibrary }}
+  #       - name: keyVaultName
+  #         value: $[ dependencies.GetResourceName.outputs['GetNameModule.keyVaultName'] ]
+  #       - name: appServiceName
+  #         value: $[ dependencies.GetResourceName.outputs['GetNameModule.appServiceName'] ]
+  #   pool:  
+  #       name: ${{ variables.deployInfraVmScaleSet }}
+  #   steps:
+  #       - template: regenerateVrmSecret.yml
+  #         parameters: 
+  #                  vrmPsm1TemplateFile: ${{ variables.vrmPsm1TemplateFile }}
+  #                  vrmProjectId: ${{ variables.vrmProjectId }}
+  #                  VrmAccessKey: $(VrmAccessKey)
+  #                  clientSerectName: ${{ variables.clientSerectName }}
+  #                  vrmTemplateFile: ${{ variables.vrmTemplateFile }}
+  #                  environment: ${{ variables.environmentType }}
+  #                  azureSubscription: ${{ variables.azureServiceConnectionName }}
+  #                  appSericeName: $(appServiceName)
+  #                  keyVaultName: $(keyVaultName)
+  #                  resourceGroupName: ${{ variables.azureResourceGroupName }}
+ 

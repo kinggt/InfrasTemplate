@@ -1,0 +1,57 @@
+parameters:
+- name: variablesCommonTemplate
+  type: string  
+- name: buildId
+  type: string
+
+
+jobs:
+    - job: DownloadAndDeployJob
+      displayName: 'Download and Deploy Job'
+      variables:
+            - template: ${{ parameters.variablesCommonTemplate }}
+      pool:  ${{ variables.buildAndReleaseAgentPool }}
+      steps:
+        - pwsh: |
+           $triggerReason = $Env:BUILD_REASON
+           Write-Host "TriggerReason is $triggerReason"
+           $sourceBranch="$(Build.SourceBranch)"
+           Write-Host "Build.SourceBranch is $sourceBranch"
+           $buildVersionToDownload='specific'
+           $parameterBuildId = "${{ parameters.buildId }}"
+           Write-Host "Param buildId is $parameterBuildId"
+           if ($parameterBuildId -eq "default") {
+                Write-Host "`$parameterBuildId is equal to 'default'"
+            } else {
+                Write-Host "`$parameterBuildId is NOT equal to 'default'"
+           }
+           if($triggerReason -eq "Manual" -and $parameterBuildId -eq "default")
+           {
+              $buildVersionToDownload='latestFromBranch'
+           }
+           Write-Host "BuildVersionToDownload is $buildVersionToDownload"
+           # please replace to your actual build pipelie name follow this format: $Env:RESOURCES_PIPELINE_{name}_TRIGGER_RUNID
+           $usedBuildId = $Env:RESOURCES_PIPELINE_COMMON_IAC_BUILD_TRIGGER_RUNID
+           if ($parameterBuildId -ne "default") {
+              $usedBuildId = $parameterBuildId
+           }
+           Write-Host "Used buildId is $usedBuildId"
+           Write-Host "##vso[task.setvariable variable=usedBuildId]$usedBuildId"    
+           Write-Host "##vso[task.setvariable variable=buildVersionToDownload]$buildVersionToDownload" 
+           Write-Host "##vso[task.setvariable variable=sourceBranch]$sourceBranch" 
+        - task: DownloadBuildArtifacts@1
+          displayName: 'Download Artifact'
+          inputs:
+            buildType: 'specific'
+            project: '${{ variables.devopsProject }}'
+            pipeline: '${{ variables.buildPipeline }}'
+            specificBuildWithTriggering: true
+            downloadType: 'single'
+            artifactName: 'drop'
+            buildId: '$(usedBuildId)'
+            buildVersionToDownload: '$(buildVersionToDownload)'
+            branchName: '$(sourceBranch)'
+            downloadPath: '$(Pipeline.Workspace)'
+
+  
+

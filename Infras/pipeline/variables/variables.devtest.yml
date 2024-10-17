@@ -1,0 +1,8 @@
+variables:
+  environmentType: "devtest"    # the enviroenmt of infras
+  azureResourceGroupName: "commonTemplateResourceGroup"   # the resource group name in azure
+  azureServiceConnectionName: "SP_ADO.EngineerChinaLab"   # the service connection used to deploy
+  azureSubscriptionId: "c103229a-9807-4c6d-bbd9-ccd96ecadcaa"   # the azure subscription id
+  deployInfraVmScaleSet: 'commonTemplate pool'    # the vmScaleSet used to deploy infras
+  deployInfraEnvironment: 'Common IAC DevTest'    # the pipeline environment used to control access of deploy infras
+  azureServiceConnectionServicePrincipalId: 'd8929838-7ffc-404f-a7fd-5117cca180b9'    # the service principal id of service connection in order to operate in keyvault

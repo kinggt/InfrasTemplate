@@ -1,0 +1,15 @@
+parameters:
+  - name: commonVariablesTemplate
+    type: string
+
+jobs:
+  - job: LintCode
+    displayName: Lint code
+    variables:
+      - template: ${{ parameters.commonVariablesTemplate }}
+    pool:  ${{ variables.deployInfrasAgentPool }}
+    steps:
+      - script: |
+          az bicep build --file ${{ variables.templateFile }}
+        name: LintBicepCode
+        displayName: Run Bicep linter

@@ -1,0 +1,24 @@
+name: Deploy Bicep files
+
+parameters:
+  - name: regenerateSecrets
+    displayName: regenerate vrm secret
+    type: boolean
+    default: false
+
+stages:
+  - stage: Lint
+    jobs:
+      - template: lint.yml
+        parameters:
+          commonVariablesTemplate: "/Infras/pipeline/variables/variables.common.yml"
+
+    ## Deploy to the devtest environment.
+  - stage: DevTest
+    condition: succeeded('Lint')
+    jobs:
+      - template: deploy.yml
+        parameters:
+          variablesTemplate: "/Infras/pipeline/variables/variables.devtest.yml"
+          commonVariablesTemplate: "/Infras/pipeline/variables/variables.common.yml"
+          regenerateSecrets: ${{ parameters.regenerateSecrets }}

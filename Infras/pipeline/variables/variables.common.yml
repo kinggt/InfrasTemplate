@@ -1,0 +1,11 @@
+variables:
+  deploymentDefaultLocation: "westeurope"   # the location that resource will be deployed
+  deployInfrasAgentPool: "gssit-agent-windows"   # the agent pool will be used to deploy the resource
+  serviceName: "template"   # serviceName that will be part of resource name format
+  locationShortSuffix: "we"   # locationShortSuffix that will be part of resource name format
+  templateFile: "Infras/template/main.bicep"    # the main.bicep template path
+  vrmTemplateFile: './Infras/pipeline/vrm/templates/template.json'    # the vrm template path
+  vrmPsm1TemplateFile: './Infras/pipeline/vrm/templates/SubmitVRMTemplate.psm1'   # the vrm powershell module path
+  vrmProjectId: '83893527-38ec-4f35-b34c-afc57109128f'    # the vrm project id , see from developer portal
+  clientSerectName: 'Swagger--ClientSecret'   # the key name to store client secret in keyvaut
+  commonGroupLibrary: 'CommonIAC.VariableGroup.Common'    # the group library to store some secret , like the token to call vrm service

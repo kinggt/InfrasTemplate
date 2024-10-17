@@ -1,0 +1,8 @@
+# DevTest environment variables
+
+variables:
+  deployVmScaleSet: 'commonTemplate pool'   # the vmScaleSet used to  deploy
+  azureServiceConnectionName: "SP_ADO.EngineerChinaLab"   # the service connection used to deploy
+  deployEnvironment: 'Common IAC DevTest'   # the pipeline environment used to control access of deploy
+  appEnvironment: 'Devtest'   # the environment use by application
+  azureResourceGroupName: 'commonTemplateResourceGroup'   # the resource group name in azure
